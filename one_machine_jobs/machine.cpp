@@ -33,16 +33,28 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 
 		for (std::vector<job>::iterator it = permutations.begin(); it != permutations.end(); ++it)
 		{
+			int v = 0;
 
-			if (type == lateness) {
+			switch(type)
+			{
+			case lateness:
 				processing_time += (*it).processing_time;
 				sum += (*it).weight * processing_time;
-			}
-			else
-			{
+				break;
+
+			case tardiness:
 				processing_time += (*it).processing_time;
-				const int v = processing_time - (*it).due_date;
+				v = processing_time - (*it).due_date;
 				sum += v < 0 ? 0 : v;
+				break;
+
+			case total_weighted_tardiness:
+				processing_time += (*it).processing_time;
+				v = processing_time - (*it).due_date;
+				sum += v < 0 ? 0 : v * (*it).weight;
+				break;
+			default:
+				break;
 			}
 		}
 
@@ -53,10 +65,16 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 			optimal_job_ = permutations;
 			optimum_ = sum;
 
-			std::cout << "new optimum found: " << sum << std::endl;
+			for (std::vector<job>::iterator it = permutations.begin(); it != permutations.end(); ++it)
+			{
+				std::cout << (*it).index << " ";
+			}
+			std::cout << "\nnew optimum found: " << sum << std::endl;
 
 			return;
 		}
+
+
 	}
 
 	for (std::vector<int>::iterator it = numbers.begin(); it != numbers.end(); ++it)
@@ -75,13 +93,22 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 
 void machine::init_tree(const job_type &type)
 {
-	if(type == lateness)
+	switch (type)
 	{
+	case  lateness:
 		std::cout << "finding shortest processing time: " << std::endl;
-	}
-	else
-	{
+		break;
+
+	case  tardiness:
 		std::cout << "finding optimum by due date: " << std::endl;
+		break;
+
+	case total_weighted_tardiness:
+		std::cout << "finding optimum by total weighted tardiness: " << std::endl;
+		break;
+
+	default:
+		return;
 	}
 
 	optimum_ = INT_MAX;

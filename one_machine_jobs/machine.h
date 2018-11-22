@@ -19,7 +19,8 @@ public:
 	enum job_type
 	{
 		lateness = 0,
-		tardiness = 1
+		tardiness = 1,
+		total_weighted_tardiness = 2
 	};
 
 	void add_job(int w, int p, int d);
@@ -28,7 +29,7 @@ public:
 	void init_tree(const job_type &type);
 
 private:
-	int index_ = 0;
+	int index_ = 1;
 	int optimum_ = INT_MAX;
 	std::vector<job> optimal_job_{};
 	std::vector<job> jobs_{};
