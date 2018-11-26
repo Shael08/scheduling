@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "machine.h"
-#include <algorithm>
 #include <ostream>
 #include <iostream>
 
@@ -11,6 +10,7 @@ void machine::add_job(const int w, const int p, const int d)
 	j.weight = w;
 	j.processing_time = p;
 	j.due_date = d;
+
 	jobs_.push_back(j);
 	++index_;
 }
@@ -33,7 +33,7 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 
 		for (std::vector<job>::iterator it = permutations.begin(); it != permutations.end(); ++it)
 		{
-			int v = 0;
+			int v;
 
 			switch(type)
 			{
