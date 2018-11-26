@@ -2,22 +2,30 @@
 #include "machine.h"
 #include <ostream>
 #include <iostream>
+#include <algorithm>
 
 void machine::add_job(const int w, const int p, const int d)
 {
-	job j;
-	j.index = index_;
+	job j{};
+	j.index = m_index;
 	j.weight = w;
 	j.processing_time = p;
 	j.due_date = d;
 
-	jobs_.push_back(j);
-	++index_;
+	m_jobs.push_back(j);
+	++m_index;
+}
+
+void machine::erase_jobs()
+{
+	m_jobs.clear();
+	m_index = 0;
 }
 
 void machine::print_jobs()
 {
-	for (std::vector<job>::iterator it = jobs_.begin(); it != jobs_.end(); ++it)
+	std::cout << std::endl;
+	for (std::vector<job>::iterator it = m_jobs.begin(); it != m_jobs.end(); ++it)
 	{
 		std::cout << "job: " << (*it).index << "\tweight: " << (*it).weight << "\tprocessing time: " << (*it).processing_time << "\tdue date: " << (*it).due_date << std::endl;
 	}
@@ -26,7 +34,7 @@ void machine::print_jobs()
 
 void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations, const job_type &type)
 {
-	if (optimum_ != INT_MAX || numbers.empty())
+	if (m_optimum != INT_MAX || numbers.empty())
 	{
 		int sum = 0;
 		int processing_time = 0;
@@ -58,18 +66,18 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 			}
 		}
 
-		if (optimum_ <= sum) return;
+		if (m_optimum <= sum) return;
 
-		if (numbers.empty() && optimum_ > sum)
+		if (numbers.empty() && m_optimum > sum)
 		{
-			optimal_job_ = permutations;
-			optimum_ = sum;
+			m_optimal_job = permutations;
+			m_optimum = sum;
 
-			for (std::vector<job>::iterator it = permutations.begin(); it != permutations.end(); ++it)
-			{
-				std::cout << (*it).index << " ";
-			}
-			std::cout << "\nnew optimum found: " << sum << std::endl;
+			//for (std::vector<job>::iterator it = permutations.begin(); it != permutations.end(); ++it)
+			//{
+			//	std::cout << (*it).index << " ";
+			//}
+			//std::cout << "\nnew optimum found: " << sum << std::endl;
 
 			return;
 		}
@@ -80,7 +88,7 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 	for (std::vector<int>::iterator it = numbers.begin(); it != numbers.end(); ++it)
 	{
 		const int value = (*it);
-		permutations.push_back(jobs_[*it]);
+		permutations.push_back(m_jobs[*it]);
 		it = numbers.erase(it);
 
 		build_tree(numbers, permutations, type);
@@ -91,7 +99,7 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 
 }
 
-void machine::init_tree(const job_type &type)
+result machine::init_tree(const job_type &type)
 {
 	switch (type)
 	{
@@ -108,12 +116,12 @@ void machine::init_tree(const job_type &type)
 		break;
 
 	default:
-		return;
+		return result{};
 	}
 
-	optimum_ = INT_MAX;
+	m_optimum = INT_MAX;
 
-	const int size = jobs_.size();
+	const int size = m_jobs.size();
 
 	std::vector<int> numbers;
 	const std::vector<job> permutations;
@@ -125,4 +133,44 @@ void machine::init_tree(const job_type &type)
 
 
 	build_tree(numbers, permutations, type);
+
+
+	result r{};
+	r.optimum = m_optimum;
+	for (auto it = m_optimal_job.begin(); it != m_optimal_job.end(); ++it) {
+		r.res_order.push_back((*it).index);
+	}
+	return r;
+}
+
+
+bool machine::sort_by_wpt(job j1, job j2)
+{
+	return j1.wpt > j2.wpt;
+}
+
+result machine::calculate_order()
+{
+
+	for (std::vector<job>::iterator it = m_jobs.begin(); it != m_jobs.end(); ++it)
+	{
+		(*it).wpt = double((*it).weight) / double((*it).processing_time);
+	}
+
+	std::sort(m_jobs.begin(), m_jobs.end(), sort_by_wpt);
+
+	int processing_time = 0, sum = 0;
+	result r{};
+
+	for (std::vector<job>::iterator it = m_jobs.begin(); it != m_jobs.end(); ++it)
+	{
+		r.res_order.push_back((*it).index);
+		//std::cout << (*it).index << " " << (*it).wpt << std::endl;
+		processing_time += (*it).processing_time;
+		sum += (*it).weight * processing_time;
+	}
+	r.optimum = sum;
+	//std::cout << "\noptimum: " << sum << std::endl;
+
+	return r;
 }
