@@ -1,6 +1,8 @@
 #pragma once
 #include <vector>
 #include <iostream>
+#include <list>
+#include <map>
 
 struct job
 {
@@ -50,6 +52,35 @@ public:
 		tardiness = 1,
 		total_weighted_tardiness = 2
 	};
+
+
+	std::map<int, std::vector<int>> adj_map;
+
+	void fill() 
+	{
+		adj_map.insert(std::pair<int, std::vector<int> > (0, std::vector<int>{ 1, 3, 6 }));
+		adj_map.insert(std::pair<int, std::vector<int> >(1, std::vector<int>{ 2 }));
+		adj_map.insert(std::pair<int, std::vector<int> >(3, std::vector<int>{ 4 }));
+		adj_map.insert(std::pair<int, std::vector<int> >(4, std::vector<int>{ 5 }));
+		adj_map.insert(std::pair<int, std::vector<int> >(6, std::vector<int>{ 7 }));
+	}
+
+	void print_adj_map() 
+	{
+		for (auto it = adj_map.begin(); it != adj_map.end(); ++it) 
+		{
+			std::cout << (*it).first << " -> ";
+
+
+			for (auto it_2 : (*it).second) 
+			{
+				std::cout << it_2 << " ";
+			}
+
+			std::cout << std::endl;
+		}
+		
+	}
 
 	void add_job(int w, int p, int d);
 	void print_jobs();
