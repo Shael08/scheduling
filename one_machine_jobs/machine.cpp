@@ -29,7 +29,7 @@
 //	}
 //}
 
-void machine::add_job(const int w, const int p, const int d)
+void machine::add_job(const double w, const double p, const double d)
 {
 	job j{};
 	j.index = m_index;
@@ -105,12 +105,12 @@ void machine::build_tree(std::set<int> numbers, std::vector<job> permutations, c
 
 	if (m_optimum != INT_MAX || numbers.empty())
 	{
-		int sum = 0;
-		int processing_time = 0;
+		double sum = 0;
+		double processing_time = 0;
 
 		for (std::vector<job>::iterator it = permutations.begin(); it != permutations.end(); ++it)
 		{
-			int v;
+			double v;
 
 			switch(type)
 			{
@@ -135,9 +135,9 @@ void machine::build_tree(std::set<int> numbers, std::vector<job> permutations, c
 			}
 		}
 
-		if (m_optimum <= sum) return;
+		if (m_optimum < sum) return;
 
-		if (numbers.empty() && m_optimum > sum)
+		if (numbers.empty())
 		{
 			m_optimal_job = permutations;
 			m_optimum = sum;
@@ -225,10 +225,17 @@ result machine::init_tree(const job_type &type, const bool is_chain)
 	return r;
 }
 
+
 bool machine::sort_by_wpt(const job j1, const job j2)
 {
 	return j1.wpt > j2.wpt;
 }
+
+bool machine::get_max(const job j1, const job j2)
+{
+	return j1.wpt_in_chain.second > j2.wpt_in_chain.second;
+}
+
 
 result machine::calculate_optimal_order()
 {
@@ -240,7 +247,7 @@ result machine::calculate_optimal_order()
 
 	std::sort(m_jobs.begin(), m_jobs.end(), sort_by_wpt);
 
-	int processing_time = 0, sum = 0;
+	double processing_time = 0, sum = 0;
 	result r{};
 
 	for (std::vector<job>::iterator it = m_jobs.begin(); it != m_jobs.end(); ++it)
@@ -252,6 +259,84 @@ result machine::calculate_optimal_order()
 	}
 	r.optimum = sum;
 	//std::cout << "\noptimum: " << sum << std::endl;
+
+	return r;
+}
+
+
+
+double machine::calculate_wpt_in_chain(const double weight, const double processing_time, std::vector<int> child, const int parent)
+{
+	const double value = weight / processing_time;
+
+	for(auto it = child.begin(); it != child.end(); ++it)
+	{
+		m_jobs[(*it) - 1].wpt_in_chain.first = m_jobs[parent].wpt_in_chain.first;
+		m_jobs[(*it) - 1].wpt_in_chain.first.push_back((*it));
+		m_jobs[(*it) - 1].wpt_in_chain.second = calculate_wpt_in_chain(m_jobs[(*it) - 1].weight + weight, m_jobs[(*it) - 1].processing_time + processing_time, m_jobs[(*it) - 1].child, (*it)-1);
+	}
+
+	return value;
+}
+
+result machine::calculate_optimal_order_in_chain()
+{
+	for (std::vector<job>::iterator it = m_jobs.begin(); it != m_jobs.end(); ++it)
+	{
+		if ((*it).is_root) 
+		{	
+			(*it).wpt_in_chain.first = std::vector<int>{ (*it).index };
+			(*it).wpt_in_chain.second = calculate_wpt_in_chain((*it).weight, (*it).processing_time, (*it).child, (*it).index - 1);
+		}
+	}
+
+	result r{};
+
+	auto min_element= std::min_element(m_jobs.begin(), m_jobs.end(), get_max);
+
+	while (!min_element->wpt_in_chain.first.empty())
+	{
+		const int last_element = min_element->wpt_in_chain.first.back() - 1;
+
+		for (auto it = m_jobs[last_element].child.begin(); it != m_jobs[last_element].child.end(); ++it) 
+		{
+			m_jobs[(*it) - 1].wpt_in_chain.first.clear();
+			m_jobs[(*it) - 1].wpt_in_chain.first.push_back((*it));
+			m_jobs[(*it) - 1].wpt_in_chain.second = calculate_wpt_in_chain(m_jobs[(*it) - 1].weight, m_jobs[(*it) - 1].processing_time, m_jobs[(*it) - 1].child, (*it) - 1);
+		}
+
+		for(unsigned i = 0; i < min_element->wpt_in_chain.first.size(); ++i)
+		{
+			int index = min_element->wpt_in_chain.first[i] - 1;
+			r.res_order.push_back(index);
+			m_jobs[index].wpt_in_chain.first = std::vector<int>{ };
+			m_jobs[index].wpt_in_chain.second = -1;
+		}
+
+		//std::cout << std::endl;
+		//for (std::vector<job>::iterator it = m_jobs.begin(); it != m_jobs.end(); ++it)
+		//{
+		//	std::cout << "job: ";
+		//	for (auto it_2 = (*it).wpt_in_chain.first.begin(); it_2 != (*it).wpt_in_chain.first.end(); ++it_2)
+		//	{
+		//		std::cout << (*it_2) << " ";
+		//	}
+		//	std::cout << "\twpt_in_chain: " << (*it).wpt_in_chain.second << std::endl;
+		//}
+		//std::cout << std::endl;
+
+		min_element = std::min_element(m_jobs.begin(), m_jobs.end(), get_max);
+	}
+
+	int processing_time = 0, sum = 0;
+	for (auto it = r.res_order.begin(); it != r.res_order.end(); ++it)
+	{
+		std::cout << m_jobs[(*it)].index << " ";
+		processing_time += m_jobs[(*it)].processing_time;
+		sum += m_jobs[(*it)].weight * processing_time;
+	}
+	r.optimum = sum;
+	std::cout << "\noptimum: " << sum << std::endl;
 
 	return r;
 }
