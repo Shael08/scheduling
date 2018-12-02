@@ -3,6 +3,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <set>
 
 struct job
 {
@@ -13,10 +14,13 @@ struct job
 	int processing_time;
 	int due_date;
 	double wpt;
+	std::vector<int> child;
+	bool is_root;
 };
 
 class result
 {
+
 public:
 	int optimum = INT_MAX;
 	std::vector<int> res_order{};
@@ -42,6 +46,7 @@ public:
 
 class machine
 {
+
 public:
 	machine() = default;
 	~machine() = default;
@@ -54,41 +59,19 @@ public:
 	};
 
 
-	std::map<int, std::vector<int>> adj_map;
+	//std::map<int, std::vector<int>> adj_map{};
+	//void fill_adj_map();
+	//void print_adj_map();
 
-	void fill() 
-	{
-		adj_map.insert(std::pair<int, std::vector<int> > (0, std::vector<int>{ 1, 3, 6 }));
-		adj_map.insert(std::pair<int, std::vector<int> >(1, std::vector<int>{ 2 }));
-		adj_map.insert(std::pair<int, std::vector<int> >(3, std::vector<int>{ 4 }));
-		adj_map.insert(std::pair<int, std::vector<int> >(4, std::vector<int>{ 5 }));
-		adj_map.insert(std::pair<int, std::vector<int> >(6, std::vector<int>{ 7 }));
-	}
-
-	void print_adj_map() 
-	{
-		for (auto it = adj_map.begin(); it != adj_map.end(); ++it) 
-		{
-			std::cout << (*it).first << " -> ";
-
-
-			for (auto it_2 : (*it).second) 
-			{
-				std::cout << it_2 << " ";
-			}
-
-			std::cout << std::endl;
-		}
-		
-	}
-
+	
 	void add_job(int w, int p, int d);
+	void add_child(int parent, std::vector<int> child);
 	void print_jobs();
 	void erase_jobs();
 
-	result calculate_order();
+	result calculate_optimal_order();
+	result init_tree(const job_type &type, bool is_chain = false);
 
-	result init_tree(const job_type &type);
 
 private:
 	int m_index = 1;
@@ -97,9 +80,6 @@ private:
 	std::vector<job> m_jobs{};
 	static bool sort_by_wpt(job j1, job j2);
 
-
-	void build_tree(std::vector<int> numbers, std::vector<job> permutations, const job_type &type);
-
-
+	void build_tree(std::set<int> numbers, std::vector<job> permutations, const job_type &type, bool is_chain);
 };
 

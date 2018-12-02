@@ -4,6 +4,31 @@
 #include <iostream>
 #include <algorithm>
 
+//void machine::fill_adj_map()
+//{
+//	adj_map.insert(std::pair<int, std::vector<int> >(0, std::vector<int>{ 1, 3, 6 }));
+//	adj_map.insert(std::pair<int, std::vector<int> >(1, std::vector<int>{ 2 }));
+//	adj_map.insert(std::pair<int, std::vector<int> >(3, std::vector<int>{ 4 }));
+//	adj_map.insert(std::pair<int, std::vector<int> >(4, std::vector<int>{ 5 }));
+//	adj_map.insert(std::pair<int, std::vector<int> >(6, std::vector<int>{ 7 }));
+//}
+//
+//void machine::print_adj_map()
+//{
+//	for (auto it = adj_map.begin(); it != adj_map.end(); ++it)
+//	{
+//		std::cout << (*it).first << " -> ";
+//
+//
+//		for (auto it_2 : (*it).second)
+//		{
+//			std::cout << it_2 << " ";
+//		}
+//
+//		std::cout << std::endl;
+//	}
+//}
+
 void machine::add_job(const int w, const int p, const int d)
 {
 	job j{};
@@ -11,9 +36,36 @@ void machine::add_job(const int w, const int p, const int d)
 	j.weight = w;
 	j.processing_time = p;
 	j.due_date = d;
+	j.is_root = true;
 
 	m_jobs.push_back(j);
 	++m_index;
+}
+
+void machine::add_child(const int parent, const std::vector<int> child)
+{
+	if (parent < m_index) 
+	{
+		int proxy = m_index;
+		if(std::any_of(child.begin(), child.end(), [proxy](const int i){return i >= proxy; }))
+		{
+			std::cout << "some child job does not exists" << std::endl;
+		}
+		else
+		{
+			for(auto it = child.begin(); it != child.end(); ++it)
+			{
+				m_jobs[parent - 1].child.push_back(*it);
+				m_jobs[(*it) - 1].is_root = false;
+			}
+
+		}
+	}
+	else
+	{
+		std::cout << "parent job does not exists" << std::endl;
+	}
+
 }
 
 void machine::erase_jobs()
@@ -27,13 +79,30 @@ void machine::print_jobs()
 	std::cout << std::endl;
 	for (std::vector<job>::iterator it = m_jobs.begin(); it != m_jobs.end(); ++it)
 	{
-		std::cout << "job: " << (*it).index << "\tweight: " << (*it).weight << "\tprocessing time: " << (*it).processing_time << "\tdue date: " << (*it).due_date << std::endl;
+		std::cout << "job: " << (*it).index << "\tweight: " << (*it).weight << "\tprocessing time: " << (*it).processing_time << "\tdue date: " << (*it).due_date << "\t is root: " << (*it).is_root << "\tchild: ";
+
+		for(auto child = (*it).child.begin(); child != (*it).child.end(); ++child)
+		{
+			std::cout << (*child) << " ";
+		}
+		std::cout << std::endl;
 	}
 	std::cout << std::endl;
 }
 
-void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations, const job_type &type)
+void machine::build_tree(std::set<int> numbers, std::vector<job> permutations, const job_type &type, const bool is_chain)
 {
+	if(is_chain)
+	{
+		if (!permutations.empty())
+		{
+			for (auto it = permutations.back().child.begin(); it != permutations.back().child.end(); ++it)
+			{
+				numbers.insert((*it) - 1);
+			}
+		}
+	}
+
 	if (m_optimum != INT_MAX || numbers.empty())
 	{
 		int sum = 0;
@@ -73,11 +142,11 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 			m_optimal_job = permutations;
 			m_optimum = sum;
 
-			//for (std::vector<job>::iterator it = permutations.begin(); it != permutations.end(); ++it)
-			//{
-			//	std::cout << (*it).index << " ";
-			//}
-			//std::cout << "\nnew optimum found: " << sum << std::endl;
+			for (std::vector<job>::iterator it = permutations.begin(); it != permutations.end(); ++it)
+			{
+				std::cout << (*it).index << " ";
+			}
+			std::cout << "\nnew optimum found: " << sum << std::endl;
 
 			return;
 		}
@@ -85,13 +154,13 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 
 	}
 
-	for (std::vector<int>::iterator it = numbers.begin(); it != numbers.end(); ++it)
+	for (std::set<int>::iterator it = numbers.begin(); it != numbers.end(); ++it)
 	{
 		const int value = (*it);
 		permutations.push_back(m_jobs[*it]);
 		it = numbers.erase(it);
 
-		build_tree(numbers, permutations, type);
+		build_tree(numbers, permutations, type, is_chain);
 
 		permutations.pop_back();
 		it = numbers.insert(it, value);
@@ -99,7 +168,7 @@ void machine::build_tree(std::vector<int> numbers, std::vector<job> permutations
 
 }
 
-result machine::init_tree(const job_type &type)
+result machine::init_tree(const job_type &type, const bool is_chain)
 {
 	switch (type)
 	{
@@ -123,16 +192,29 @@ result machine::init_tree(const job_type &type)
 
 	const int size = m_jobs.size();
 
-	std::vector<int> numbers;
+	std::set<int> numbers;
 	const std::vector<job> permutations;
 
-	for (int i = 0; i < size; ++i)
+	if (is_chain) 
 	{
-		numbers.push_back(i);
+		for (auto it = m_jobs.begin(); it != m_jobs.end(); ++it)
+		{
+			if ((*it).is_root)
+			{
+				numbers.insert((*it).index - 1);
+			}
+		}
+
+	}
+	else
+	{
+		for (int i = 0; i < size; ++i)
+		{
+			numbers.insert(i);
+		}
 	}
 
-
-	build_tree(numbers, permutations, type);
+	build_tree(numbers, permutations, type, is_chain);
 
 
 	result r{};
@@ -143,13 +225,12 @@ result machine::init_tree(const job_type &type)
 	return r;
 }
 
-
-bool machine::sort_by_wpt(job j1, job j2)
+bool machine::sort_by_wpt(const job j1, const job j2)
 {
 	return j1.wpt > j2.wpt;
 }
 
-result machine::calculate_order()
+result machine::calculate_optimal_order()
 {
 
 	for (std::vector<job>::iterator it = m_jobs.begin(); it != m_jobs.end(); ++it)
