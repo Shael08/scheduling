@@ -292,11 +292,11 @@ result machine::calculate_optimal_order_in_chain()
 
 	result r{};
 
-	auto min_element= std::min_element(m_jobs.begin(), m_jobs.end(), get_max);
+	auto max_element= std::min_element(m_jobs.begin(), m_jobs.end(), get_max);
 
-	while (!min_element->wpt_in_chain.first.empty())
+	while (!max_element->wpt_in_chain.first.empty())
 	{
-		const int last_element = min_element->wpt_in_chain.first.back() - 1;
+		const int last_element = max_element->wpt_in_chain.first.back() - 1;
 
 		for (auto it = m_jobs[last_element].child.begin(); it != m_jobs[last_element].child.end(); ++it) 
 		{
@@ -305,9 +305,9 @@ result machine::calculate_optimal_order_in_chain()
 			m_jobs[(*it) - 1].wpt_in_chain.second = calculate_wpt_in_chain(m_jobs[(*it) - 1].weight, m_jobs[(*it) - 1].processing_time, m_jobs[(*it) - 1].child, (*it) - 1);
 		}
 
-		for(unsigned i = 0; i < min_element->wpt_in_chain.first.size(); ++i)
+		for (unsigned i = 0; i < max_element->wpt_in_chain.first.size(); ++i)
 		{
-			int index = min_element->wpt_in_chain.first[i] - 1;
+			int index = max_element->wpt_in_chain.first[i] - 1;
 			r.res_order.push_back(index);
 			m_jobs[index].wpt_in_chain.first = std::vector<int>{ };
 			m_jobs[index].wpt_in_chain.second = -1;
@@ -325,7 +325,7 @@ result machine::calculate_optimal_order_in_chain()
 		//}
 		//std::cout << std::endl;
 
-		min_element = std::min_element(m_jobs.begin(), m_jobs.end(), get_max);
+		max_element = std::min_element(m_jobs.begin(), m_jobs.end(), get_max);
 	}
 
 	int processing_time = 0, sum = 0;
